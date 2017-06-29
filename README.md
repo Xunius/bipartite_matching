@@ -9,3 +9,8 @@ using numpy and networkx modules of python.
 
 **NOTICE**: optimization needed and use with care, improvement is greatly welcomed.
 
+## Dependencies:
+
+- Python
+- networkx
+- numpy
