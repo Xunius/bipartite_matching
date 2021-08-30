@@ -41,8 +41,8 @@ def formDirected(g,match):
 
     <g>: undirected bipartite graph. Nodes are separated by their
          'bipartite' attribute.
-    <match>: list of edges forming a matching of <g>. 
-    
+    <match>: list of edges forming a matching of <g>.
+
     Return <d>: directed graph, with edges in <match> pointing from set-0
                 (bipartite attribute ==0) to set-1 (bipartite attrbiute==1),
                 and the other edges in <g> but not in <matching> pointing
@@ -53,12 +53,12 @@ def formDirected(g,match):
 
     for ee in g.edges():
         if ee in match or (ee[1],ee[0]) in match:
-            if g.node[ee[0]]['bipartite']==0:
+            if g.nodes[ee[0]]['bipartite']==0:
                 d.add_edge(ee[0],ee[1])
             else:
                 d.add_edge(ee[1],ee[0])
         else:
-            if g.node[ee[0]]['bipartite']==0:
+            if g.nodes[ee[0]]['bipartite']==0:
                 d.add_edge(ee[1],ee[0])
             else:
                 d.add_edge(ee[0],ee[1])
@@ -74,7 +74,7 @@ def enumMaximumMatching(g):
          'bipartite' attribute.
 
     Return <all_matches>: list, each is a list of edges forming a maximum
-                          matching of <g>. 
+                          matching of <g>.
 
     Author: guangzhi XU (xugzhi1987@gmail.com; guangzhi.xu@outlook.com)
     Update time: 2017-05-21 20:04:51.
@@ -83,12 +83,14 @@ def enumMaximumMatching(g):
     all_matches=[]
 
     #----------------Find one matching M----------------
-    match=bipartite.hopcroft_karp_matching(g)
+    #nodes = g.nodes
+    top = [n for n in g.nodes if g.nodes[n]['bipartite']==0]
+    match=bipartite.hopcroft_karp_matching(g, top_nodes=top)
 
     #---------------Re-orient match arcs---------------
     match2=[]
     for kk,vv in match.items():
-        if g.node[kk]['bipartite']==0:
+        if g.nodes[kk]['bipartite']==0:
             match2.append((kk,vv))
     match=match2
     all_matches.append(match)
@@ -128,7 +130,7 @@ def enumMaximumMatchingIter(g,match,all_matches,add_e=None):
     if len(cycles)==0:
 
         #---------If no cycle, find a feasible path---------
-        all_uncovered=set(g.node).difference(set([ii[0] for ii in match]))
+        all_uncovered=set(g.nodes).difference(set([ii[0] for ii in match]))
         all_uncovered=all_uncovered.difference(set([ii[1] for ii in match]))
         all_uncovered=list(all_uncovered)
 
@@ -167,21 +169,21 @@ def enumMaximumMatchingIter(g,match,all_matches,add_e=None):
         len2path=len2paths[0]
         if reversed:
             len2path=len2path[::-1]
-        len2path=zip(len2path[:-1],len2path[1:])
+        len2path=list(zip(len2path[:-1],len2path[1:]))
 
         new_match=[]
         for ee in d.edges():
             if ee in len2path:
-                if g.node[ee[1]]['bipartite']==0:
+                if g.nodes[ee[1]]['bipartite']==0:
                     new_match.append((ee[1],ee[0]))
             else:
-                if g.node[ee[0]]['bipartite']==0:
+                if g.nodes[ee[0]]['bipartite']==0:
                     new_match.append(ee)
 
         if add_e is not None:
             for ii in add_e:
                 new_match.append(ii)
-        
+
         all_matches.append(new_match)
 
         #---------------------Select e---------------------
@@ -208,16 +210,16 @@ def enumMaximumMatchingIter(g,match,all_matches,add_e=None):
         #----------------Find a cycle in D----------------
         cycle=cycles[0]
         cycle.append(cycle[0])
-        cycle=zip(cycle[:-1],cycle[1:])
+        cycle=list(zip(cycle[:-1],cycle[1:]))
 
         #-------------Create a new matching M'-------------
         new_match=[]
         for ee in d.edges():
             if ee in cycle:
-                if g.node[ee[1]]['bipartite']==0:
+                if g.nodes[ee[1]]['bipartite']==0:
                     new_match.append((ee[1],ee[0]))
             else:
-                if g.node[ee[0]]['bipartite']==0:
+                if g.nodes[ee[0]]['bipartite']==0:
                     new_match.append(ee)
 
         if add_e is not None:
@@ -229,7 +231,7 @@ def enumMaximumMatchingIter(g,match,all_matches,add_e=None):
         #-----------------Choose an edge E-----------------
         e=set(match).intersection(set(cycle))
         e=list(e)[0]
-        
+
         #-----------------Form subproblems-----------------
         g_plus=g.copy()
         g_minus=g.copy()
@@ -245,7 +247,7 @@ def enumMaximumMatchingIter(g,match,all_matches,add_e=None):
         all_matches=enumMaximumMatchingIter(g_plus,match,all_matches,add_e_new)
 
     return all_matches
-    
+
 
 
 def enumMaximumMatching2(g):
@@ -280,12 +282,12 @@ def enumMaximumMatching2(g):
         match_list=sparse.find(ii[:n1]==1)
         m1=[nodes[jj] for jj in match_list[0]]
         m2=[nodes[jj] for jj in match_list[1]]
-        match_list=zip(m1,m2)
+        match_list=list(zip(m1,m2))
 
         all_matches2.append(match_list)
 
 
-    print 'got all'
+    print('got all')
     return all_matches2
 
 
@@ -311,7 +313,7 @@ def enumMaximumMatchingIter2(adj,matchadj,all_matches,n1,add_e=None,check_cycle=
     if check_cycle:
         cycle=cycles[0]
         cycle.append(cycle[0])
-        cycle=zip(cycle[:-1],cycle[1:])
+        cycle=list(zip(cycle[:-1],cycle[1:]))
 
         #--------------Create a new matching--------------
         new_match=matchadj.copy()
@@ -339,8 +341,8 @@ def enumMaximumMatchingIter2(adj,matchadj,all_matches,n1,add_e=None,check_cycle=
         g_plus[e[1],:]=0
         g_minus[e[0],e[1]]=0
         g_minus[e[1],e[0]]=0
-        
-        
+
+
         add_e_new=[e,]
         if add_e is not None:
             add_e_new.extend(add_e)
@@ -403,7 +405,7 @@ def enumMaximumMatchingIter2(adj,matchadj,all_matches,n1,add_e=None,check_cycle=
         all_matches=enumMaximumMatchingIter2(g_plus,new_match,all_matches,n1,add_e_new,check_cycle)
 
     if len(all_matches)%1000==0:
-        print 'len',len(all_matches)
+        print('len',len(all_matches))
 
     return all_matches
 
