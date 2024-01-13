@@ -1,9 +1,6 @@
 '''Functions to enumerate all perfect and maximum matchings in bipartited graph.
-
-Implemented following the algorithms in the paper "Algorithms for Enumerating
-All Perfect, Maximum and Maximal Matchings in Bipartite Graphs" by Takeaki Uno,
+Implemented following the algorithms in the paper "Algorithms for Enumerating All Perfect, Maximum and Maximal Matchings in Bipartite Graphs" by Takeaki Uno,
 using numpy and networkx modules of python.
-
 NOTICE: optimization needed.
 
 Author: guangzhi XU (xugzhi1987@gmail.com; guangzhi.xu@outlook.com)
@@ -18,7 +15,7 @@ import networkx as nx
 from networkx import bipartite
 import numpy
 from scipy import sparse
-
+import sys
 
 
 def plotGraph(graph):
@@ -67,11 +64,12 @@ def formDirected(g,match):
 
 
 
-def enumMaximumMatching(g):
+def enumMaximumMatching(g, m=sys.maxsize):
     '''Find all maximum matchings in an undirected bipartite graph.
 
     <g>: undirected bipartite graph. Nodes are separated by their
          'bipartite' attribute.
+    <m>: maximum number of matchings to find.
 
     Return <all_matches>: list, each is a list of edges forming a maximum
                           matching of <g>.
@@ -81,6 +79,8 @@ def enumMaximumMatching(g):
     '''
 
     all_matches=[]
+    if m < 1:
+        return all_matches
 
     #----------------Find one matching M----------------
     #nodes = g.nodes
@@ -94,16 +94,18 @@ def enumMaximumMatching(g):
             match2.append((kk,vv))
     match=match2
     all_matches.append(match)
+    if len(all_matches) == m:
+        return all_matches
 
     #-----------------Enter recursion-----------------
-    all_matches=enumMaximumMatchingIter(g,match,all_matches,None)
+    all_matches=enumMaximumMatchingIter(g,match,all_matches,m,None)
 
     return all_matches
 
 
 
 
-def enumMaximumMatchingIter(g,match,all_matches,add_e=None):
+def enumMaximumMatchingIter(g,match,all_matches,m,add_e=None):
     '''Recurively search maximum matchings.
 
     <g>: undirected bipartite graph. Nodes are separated by their
@@ -125,9 +127,12 @@ def enumMaximumMatchingIter(g,match,all_matches,add_e=None):
     d=formDirected(g,match)
 
     #-----------------Find cycles in D-----------------
-    cycles=list(nx.simple_cycles(d))
+    try:
+        cycle=nx.find_cycle(d)
+    except nx.exception.NetworkXNoCycle:
+        cycle=[]
 
-    if len(cycles)==0:
+    if len(cycle)==0:
 
         #---------If no cycle, find a feasible path---------
         all_uncovered=set(g.nodes).difference(set([ii[0] for ii in match]))
@@ -185,6 +190,8 @@ def enumMaximumMatchingIter(g,match,all_matches,add_e=None):
                 new_match.append(ii)
 
         all_matches.append(new_match)
+        if len(all_matches) == m:
+            return all_matches
 
         #---------------------Select e---------------------
         e=set(len2path).difference(set(match))
@@ -202,16 +209,13 @@ def enumMaximumMatchingIter(g,match,all_matches,add_e=None):
         if add_e is not None:
             add_e_new.extend(add_e)
 
-        all_matches=enumMaximumMatchingIter(g_minus,match,all_matches,add_e)
-        all_matches=enumMaximumMatchingIter(g_plus,new_match,all_matches,add_e_new)
+        all_matches=enumMaximumMatchingIter(g_minus,match,all_matches,m,add_e)
+        if len(all_matches) == m:
+            return all_matches
+        all_matches=enumMaximumMatchingIter(g_plus,new_match,all_matches,m,add_e_new)
 
 
     else:
-        #----------------Find a cycle in D----------------
-        cycle=cycles[0]
-        cycle.append(cycle[0])
-        cycle=list(zip(cycle[:-1],cycle[1:]))
-
         #-------------Create a new matching M'-------------
         new_match=[]
         for ee in d.edges():
@@ -227,6 +231,8 @@ def enumMaximumMatchingIter(g,match,all_matches,add_e=None):
                 new_match.append(ii)
 
         all_matches.append(new_match)
+        if len(all_matches) == m:
+            return all_matches
 
         #-----------------Choose an edge E-----------------
         e=set(match).intersection(set(cycle))
@@ -243,14 +249,16 @@ def enumMaximumMatchingIter(g,match,all_matches,add_e=None):
         if add_e is not None:
             add_e_new.extend(add_e)
 
-        all_matches=enumMaximumMatchingIter(g_minus,new_match,all_matches,add_e)
-        all_matches=enumMaximumMatchingIter(g_plus,match,all_matches,add_e_new)
+        all_matches=enumMaximumMatchingIter(g_minus,new_match,all_matches,m,add_e)
+        if len(all_matches) == m:
+            return all_matches
+        all_matches=enumMaximumMatchingIter(g_plus,match,all_matches,m,add_e_new)
 
     return all_matches
 
 
 
-def enumMaximumMatching2(g):
+def enumMaximumMatching2(g, m=sys.maxsize):
     '''Similar to enumMaximumMatching() but implemented using adjacency matrix
     of graph. Slight speed boost.
     '''
@@ -470,8 +478,27 @@ def example1():
             g_match.add_edge(ii[0],ii[1])
         plotGraph(g_match)
 
+def example2():
+    g=nx.Graph()
+    n = 4
+    edges=[
+            [0, 4],[0, 5],[0, 6],[0, 7],
+            [1, 4],[1, 5],[1, 6],[1, 7],
+            [2, 4],[2, 5],[2, 6],[2, 7],
+            [3, 4],[3, 5],[3, 6],[3, 7],
+            ]
+    for i in range(n):
+        g.add_node(i,   bipartite=0) 
+        g.add_node(i+n, bipartite=1)
+
+    g.add_edges_from(edges)
+
+    m = 5 # first 5 matchings, full bipartite graph (n=4) has n! = 4! = 24 in total
+    all_matches=enumMaximumMatching(g, m)
+    
+    print(all_matches)
 
 #-------------Main---------------------------------
 if __name__=='__main__':
 
-    example1()
+    example2()
